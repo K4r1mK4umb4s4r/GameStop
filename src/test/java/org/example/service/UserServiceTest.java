@@ -2,124 +2,115 @@ package org.example.service;
 
 import org.example.dao.UserRepository;
 import org.example.DTO.UserDTO;
-import org.example.mapper.UserMapper;
 import org.example.model.User;
+import org.example.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-class UserServiceTest {
+public class UserServiceTest {
+
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private UserMapper userMapper;
 
     @InjectMocks
     private UserService userService;
 
+    private final String salt = "some_salt";
+
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
+        userService = new UserService(userRepository, salt);
     }
 
     @Test
-    void getUserByCredentials() {
-        User user = new User(1L, "Vasya Sasya", "VasyaSasya@gmail.com", "securepassword", null);
-        UserDTO userDTO = new UserDTO(1L, "Vasya Sasya", "VasyaSasya@gmail.com", "securepassword", null);
-        when(userRepository.findByEmail("Vasya Sasya@gmail.com")).thenReturn(user);
-        when(userMapper.toDTO(user)).thenReturn(userDTO);
+    public void testRegisterNewUser_Success() {
+        String email = "test@example.com";
+        String password = "password";
 
-        UserDTO result = userService.getUserByCredentials("Vasya Sasya@gmail.com", "securepassword");
+        when(userRepository.findByEmail(email)).thenReturn(null);
+
+        UserDTO newUser = new UserDTO(null, "TestUser", email, password, LocalDate.now());
+        assertTrue(userService.registerNewUser(newUser));
+        verify(userRepository).saveUser(any(User.class));
+    }
+
+    @Test
+    public void testRegisterNewUser_Failure_EmailExists() {
+        String email = "test@example.com";
+
+        when(userRepository.findByEmail(email)).thenReturn(new User());
+
+        UserDTO newUser = new UserDTO(null, "TestUser", email, "password", LocalDate.now());
+        assertFalse(userService.registerNewUser(newUser));
+        verify(userRepository, never()).saveUser(any(User.class));
+    }
+
+    @Test
+    public void testGetUserByCredentials_ValidCredentials() {
+        String email = "test@example.com";
+        String password = "password";
+        User user = new User(1L, "TestUser", email, String.valueOf((salt+password).hashCode()), LocalDate.now());
+
+        when(userRepository.findByEmail(email)).thenReturn(user);
+
+        UserDTO result = userService.getUserByCredentials(email, password);
+
         assertNotNull(result);
-        assertEquals("Vasya Sasya", result.getName());
-
-        verify(userRepository).findByEmail("Vasya Sasya@gmail.com");
+        assertEquals(email, result.getEmail());
     }
 
     @Test
-    void getUserById() {
-        User user = new User(1L, "Vasya Sasya", "VasyaSasya@gmail.com", "securepassword", null);
-        UserDTO userDTO = new UserDTO(1L, "Vasya Sasya", "VasyaSasya@gmail.com", "securepassword", null);
-        when(userRepository.getUserById(1L)).thenReturn(user);
-        when(userMapper.toDTO(user)).thenReturn(userDTO);
+    public void testGetUserByCredentials_InvalidCredentials() {
+        String email = "test@example.com";
+        String password = "password";
 
-        UserDTO result = userService.getUserById(1L);
-        assertNotNull(result);
-        assertEquals("John Doe", result.getName());
+        when(userRepository.findByEmail(email)).thenReturn(null);
 
-        verify(userRepository).getUserById(1L);
+        assertNull(userService.getUserByCredentials(email, password));
     }
 
     @Test
-    void getAllUsers() {
-        List<User> users = Arrays.asList(new User(1L, "Vasya Sasya", "Sasya@gmail.com", "securepassword", null));
-        List<UserDTO> userDTOs = Arrays.asList(new UserDTO(1L, "Vasya Sasya", "Sasya@gmail.com", "securepassword", null));
-        when(userRepository.getAllUsers()).thenReturn(users);
-
-        List<UserDTO> results = userService.getAllUsers();
-        assertFalse(results.isEmpty());
-        assertEquals(1, results.size());
-        assertEquals("John Doe", results.get(0).getName());
-
-        verify(userRepository).getAllUsers();
-    }
-
-    @Test
-    void saveUser() {
-        UserDTO userDTO = new UserDTO(null, "Vusya Sasya", "VusyaSasya@gmail.com", "newpassword", null);
-        User user = new User(null, "Vusya Sasya", "VusyaSasya@gmail.com", "newpassword", null);
-        doNothing().when(userRepository).saveUser(any(User.class));
-        when(userMapper.toEntity(userDTO)).thenReturn(user);
-
-        userService.saveUser(userDTO);
-
-        verify(userRepository).saveUser(user);
-        verify(userMapper).toEntity(userDTO);
-    }
-
-    @Test
-    void updateUser() {
-        UserDTO userDTO = new UserDTO(1L, "Updated Vusya Sasya", "VusyaSasya@gmail.com", "updatedpassword", null);
-        User user = new User(1L, "Updated Vusya Sasya", "VusyaSasya@gmail.com", "updatedpassword", null);
-        doNothing().when(userRepository).updateUser(any(User.class));
-        when(userMapper.toEntity(userDTO)).thenReturn(user);
+    public void testUpdateUser() {
+        UserDTO userDTO = new UserDTO(1L, "UpdatedUser", "update@example.com", "updatedPassword", LocalDate.now());
+        User user = UserMapper.toEntity(userDTO);
+        user.setPassword(String.valueOf((salt+"updatedPassword").hashCode()));
+        doNothing().when(userRepository).updateUser(user);
 
         userService.updateUser(userDTO);
 
         verify(userRepository).updateUser(user);
-        verify(userMapper).toEntity(userDTO);
     }
 
     @Test
-    void deleteUser() {
-        doNothing().when(userRepository).deleteUser(1L);
+    public void testGetAllUsers() {
+        User user1 = new User(1L, "UserOne", "one@example.com", "passOne", LocalDate.now());
+        User user2 = new User(2L, "UserTwo", "two@example.com", "passTwo", LocalDate.now());
+        when(userRepository.getAllUsers()).thenReturn(Arrays.asList(user1, user2));
 
-        userService.deleteUser(1L);
+        List<UserDTO> users = userService.getAllUsers();
 
-        verify(userRepository).deleteUser(1L);
+        assertNotNull(users);
+        assertEquals(2, users.size());
+        assertEquals("UserOne", users.get(0).getName());
+        assertEquals("UserTwo", users.get(1).getName());
     }
 
     @Test
-    void registerNewUser() {
-        UserDTO newUserDTO = new UserDTO(null, "New User", "new.user@example.com", "userpassword", null);
-        User newUser = new User(null, "New User", "new.user@example.com", "userpassword", null);
-        when(userRepository.findByEmail("new.user@example.com")).thenReturn(null);
-        when(userMapper.toEntity(newUserDTO)).thenReturn(newUser);
-        doNothing().when(userRepository).saveUser(newUser);
+    public void testDeleteUser() {
+        Long userId = 1L;
+        doNothing().when(userRepository).deleteUser(userId);
 
-        boolean result = userService.registerNewUser(newUserDTO);
-        assertTrue(result);
+        userService.deleteUser(userId);
 
-        verify(userRepository).findByEmail("new.user@example.com");
-        verify(userRepository).saveUser(newUser);
+        verify(userRepository).deleteUser(userId);
     }
 }

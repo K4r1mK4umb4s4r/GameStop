@@ -54,7 +54,7 @@ class DeveloperServiceTest {
         DeveloperDTO newDeveloper = new DeveloperDTO(2L, "New Dev", "http://newdev.com");
         doNothing().when(developerRepository).saveDeveloper(DeveloperMapper.toEntity(newDeveloper));
 
-        developerService.saveDeveloper(new DeveloperDTO());
+        developerService.saveDeveloper(newDeveloper);
         verify(developerRepository).saveDeveloper(DeveloperMapper.toEntity(newDeveloper));
     }
 

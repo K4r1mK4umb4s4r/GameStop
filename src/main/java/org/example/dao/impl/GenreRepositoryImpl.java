@@ -62,11 +62,10 @@ public class GenreRepositoryImpl implements GenreRepository {
 
     @Override
     public void saveGenre(Genre genre) {
-        final String query = "INSERT INTO Genre (Genre_ID, Title, Description) VALUES (?, ?, ?)";
+        final String query = "INSERT INTO Genre (Title, Description) VALUES ( ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setLong(1, genre.getGenreId());
-            statement.setString(2, genre.getTitle());
-            statement.setString(3, genre.getDescription());
+            statement.setString(1, genre.getTitle());
+            statement.setString(2, genre.getDescription());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new InsertionException("Can't save Genre");

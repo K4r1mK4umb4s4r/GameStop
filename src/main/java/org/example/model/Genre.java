@@ -1,5 +1,7 @@
 package org.example.model;
 
+import java.util.Objects;
+
 public class Genre {
     private Long genreId;
     private String title;
@@ -37,4 +39,16 @@ public class Genre {
         this.description = description;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Genre genre = (Genre) o;
+        return Objects.equals(genreId, genre.genreId) && Objects.equals(title, genre.title) && Objects.equals(description, genre.description);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(genreId, title, description);
+    }
 }

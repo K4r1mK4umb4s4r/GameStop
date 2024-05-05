@@ -32,7 +32,6 @@ class UserRepositoryImplTest {
 
     @AfterEach
     void tearDown() throws Exception {
-        // Очистка таблиц после каждого теста
         try (Statement statement = connection.createStatement()) {
             statement.execute("TRUNCATE TABLE \"User\" RESTART IDENTITY CASCADE");
         }

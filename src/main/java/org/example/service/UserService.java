@@ -37,11 +37,15 @@ public class UserService {
 
     public void saveUser(UserDTO userDTO) {
         User user = UserMapper.toEntity(userDTO);
+        String hashedPassword = hashPassword(userDTO.getPassword());
+        user.setPassword(hashedPassword);
         userRepository.saveUser(user);
     }
 
     public void updateUser(UserDTO userDTO) {
         User user = UserMapper.toEntity(userDTO);
+        String hashedPassword = hashPassword(userDTO.getPassword());
+        user.setPassword(hashedPassword);
         userRepository.updateUser(user);
     }
 

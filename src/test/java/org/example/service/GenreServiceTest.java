@@ -2,98 +2,89 @@ package org.example.service;
 
 import org.example.dao.GenreRepository;
 import org.example.DTO.GenreDTO;
-import org.example.mapper.GenreMapper;
 import org.example.model.Genre;
+import org.example.mapper.GenreMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-class GenreServiceTest {
+public class GenreServiceTest {
+
     @Mock
     private GenreRepository genreRepository;
-
-    @Mock
-    private GenreMapper genreMapper;
 
     @InjectMocks
     private GenreService genreService;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void getGenreById() {
-        Genre genre = new Genre(1L, "Action", "Action games involving...");
-        GenreDTO genreDTO = new GenreDTO(1L, "Action", "Action games involving...");
-        when(genreRepository.getGenreById(1L)).thenReturn(genre);
-        when(genreMapper.toDTO(genre)).thenReturn(genreDTO);
+    public void testGetGenreById() {
+        Long genreId = 1L;
+        Genre genre = new Genre(genreId, "Horror", "Scary genre");
+        when(genreRepository.getGenreById(genreId)).thenReturn(genre);
 
-        GenreDTO result = genreService.getGenreById(1L);
+        GenreDTO result = genreService.getGenreById(genreId);
+
         assertNotNull(result);
-        assertEquals("Action", result.getTitle());
-
-        verify(genreRepository).getGenreById(1L);
-        verify(genreMapper).toDTO(genre);
+        assertEquals(genreId, result.getGenreId());
+        assertEquals("Horror", result.getTitle());
     }
 
     @Test
-    void getAllGenres() {
-        List<Genre> genres = Arrays.asList(new Genre(1L, "Action", "Description"));
-        List<GenreDTO> genreDTOs = Arrays.asList(new GenreDTO(1L, "Action", "Description"));
-        when(genreRepository.getAllGenres()).thenReturn(genres);
+    public void testGetAllGenres() {
+        Genre genre1 = new Genre(1L, "Horror", "Scary genre");
+        Genre genre2 = new Genre(2L, "Comedy", "Funny genre");
+        when(genreRepository.getAllGenres()).thenReturn(Arrays.asList(genre1, genre2));
 
+        List<GenreDTO> genres = genreService.getAllGenres();
 
-        List<GenreDTO> result = genreService.getAllGenres();
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        assertEquals("Action", result.get(0).getTitle());
-
-        verify(genreRepository).getAllGenres();
-
+        assertNotNull(genres);
+        assertEquals(2, genres.size());
+        assertEquals("Horror", genres.get(0).getTitle());
+        assertEquals("Comedy", genres.get(1).getTitle());
     }
 
     @Test
-    void saveGenre() {
-        GenreDTO genreDTO = new GenreDTO(null, "Strategy", "Strategy games...");
-        Genre genre = new Genre(null, "Strategy", "Strategy games...");
-        doNothing().when(genreRepository).saveGenre(any(Genre.class));
-        when(genreMapper.toEntity(genreDTO)).thenReturn(genre);
+    public void testSaveGenre() {
+        GenreDTO genreDTO = new GenreDTO(null, "Horror", "Scary genre");
+        Genre genre = GenreMapper.toEntity(genreDTO);
+
+        doNothing().when(genreRepository).saveGenre(genre);
 
         genreService.saveGenre(genreDTO);
 
         verify(genreRepository).saveGenre(genre);
-        verify(genreMapper).toEntity(genreDTO);
     }
 
     @Test
-    void updateGenre() {
-        GenreDTO genreDTO = new GenreDTO(1L, "Updated Genre", "Updated Description");
-        Genre genre = new Genre(1L, "Updated Genre", "Updated Description");
-        doNothing().when(genreRepository).updateGenre(any(Genre.class));
-        when(genreMapper.toEntity(genreDTO)).thenReturn(genre);
+    public void testUpdateGenre() {
+        GenreDTO genreDTO = new GenreDTO(1L, "Updated Horror", "Updated description");
+        Genre genre = GenreMapper.toEntity(genreDTO);
+
+        doNothing().when(genreRepository).updateGenre(genre);
 
         genreService.updateGenre(genreDTO);
 
         verify(genreRepository).updateGenre(genre);
-        verify(genreMapper).toEntity(genreDTO);
     }
 
     @Test
-    void deleteGenre() {
-        doNothing().when(genreRepository).deleteGenre(1L);
+    public void testDeleteGenre() {
+        Long genreId = 1L;
+        doNothing().when(genreRepository).deleteGenre(genreId);
 
-        genreService.deleteGenre(1L);
+        genreService.deleteGenre(genreId);
 
-        verify(genreRepository).deleteGenre(1L);
+        verify(genreRepository).deleteGenre(genreId);
     }
 }
