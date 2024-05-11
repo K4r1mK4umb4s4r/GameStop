@@ -5,6 +5,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.example.DTO.UserDTO;
 import org.example.dao.UserRepository;
 import org.example.dao.impl.UserRepositoryImpl;
@@ -15,22 +17,24 @@ import org.example.util.PropertiesUtil;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.logging.Level;
 
 @WebServlet("/register")
 public class RegistrationServlet extends HttpServlet {
+    private static final Logger logger = LogManager.getLogger(RegistrationServlet.class);
     private UserService userService;
 
     @Override
     public void init() {
-        PropertiesUtil propertiesUtil = new PropertiesUtil("Data.properties");
-        DBUtil dbUtil = new DBUtil(propertiesUtil);
-        UserRepositoryImpl userRepository = null;
         try {
-            userRepository = new UserRepositoryImpl(dbUtil.getConnection());
+            PropertiesUtil propertiesUtil = new PropertiesUtil("Data.properties");
+            DBUtil dbUtil = new DBUtil(propertiesUtil);
+            UserRepositoryImpl userRepository = new UserRepositoryImpl(dbUtil.getConnection());
+            userService = new UserService(userRepository, propertiesUtil.getProperty("salt"));
         } catch (SQLException e) {
+            logger.error("Failed to initialize in RegistrationServlet", e);
             throw new RuntimeException(e);
         }
-        userService = new UserService(userRepository, propertiesUtil.getProperty("salt"));
     }
 
     @Override
@@ -54,6 +58,7 @@ public class RegistrationServlet extends HttpServlet {
                 request.getRequestDispatcher("WEB-INF/register.jsp").forward(request, response);
             }
         } catch (Exception e) {
+            logger.error("Error during registration process", e);
             request.setAttribute("error", "Internal server error. Please try again later.");
             request.getRequestDispatcher("WEB-INF/register.jsp").forward(request, response);
         }

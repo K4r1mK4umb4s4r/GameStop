@@ -5,9 +5,10 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.example.DTO.DeveloperDTO;
 import org.example.dao.impl.DeveloperRepositoryImpl;
-import org.example.exception.InsertionException;
 import org.example.mapper.DeveloperMapper;
 import org.example.service.DeveloperService;
 import org.example.util.DBUtil;
@@ -17,8 +18,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+
 @WebServlet(name = "DeveloperServlet", urlPatterns = {"/developers"})
 public class DeveloperServlet extends HttpServlet {
+    private static final Logger logger = LogManager.getLogger(DeveloperServlet.class);
     private DeveloperService developerService;
 
     @Override
@@ -29,13 +32,19 @@ public class DeveloperServlet extends HttpServlet {
             DeveloperRepositoryImpl developerRepository = new DeveloperRepositoryImpl(dbUtil.getConnection());
             this.developerService = new DeveloperService(developerRepository);
         } catch (SQLException e) {
+            logger.error("Failed to initialize developer repository", e);
             throw new RuntimeException("Failed to initialize developer repository", e);
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getRequestDispatcher("WEB-INF/developer.jsp").forward(request, response);
+        try {
+            request.getRequestDispatcher("WEB-INF/developer.jsp").forward(request, response);
+        } catch (Exception e) {
+            logger.error("Error forwarding to developer.jsp", e);
+            throw e;
+        }
     }
 
     @Override
@@ -43,19 +52,19 @@ public class DeveloperServlet extends HttpServlet {
         String name = request.getParameter("name");
         String action = request.getParameter("action");
 
-        if ("add".equals(action)) {
-            try {
+        try {
+            if ("add".equals(action)) {
                 String website = request.getParameter("website");
                 DeveloperDTO developer = new DeveloperDTO(null, name, website);
                 developerService.saveDeveloper(developer);
                 request.setAttribute("message", "Developer added successfully!");
+            } else if ("search".equals(action)) {
+                List<DeveloperDTO> developers = developerService.findDevelopersByName(name);
+                request.setAttribute("developers", developers.stream().map(DeveloperMapper::toSDTO).toList());
             }
-            catch (InsertionException e){
-                request.setAttribute("message", e.getMessage());
-            }
-        } else if ("search".equals(action)) {
-            List<DeveloperDTO> developers = developerService.findDevelopersByName(name);
-            request.setAttribute("developers", developers.stream().map(DeveloperMapper::toSDTO).toList());
+        } catch (Exception e) {
+            logger.error("Error processing POST request", e);
+            request.setAttribute("message", "Error processing request: " + e.getMessage());
         }
 
         request.getRequestDispatcher("WEB-INF/developer.jsp").forward(request, response);

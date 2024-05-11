@@ -6,8 +6,9 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.example.DTO.UserDTO;
-import org.example.dao.UserRepository;
 import org.example.dao.impl.UserRepositoryImpl;
 import org.example.service.UserService;
 import org.example.util.DBUtil;
@@ -15,25 +16,24 @@ import org.example.mapper.UserMapper;
 import org.example.util.PropertiesUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.SQLException;
-import java.util.Properties;
 
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
+    private static final Logger logger = LogManager.getLogger(LoginServlet.class);
     private UserService userService;
 
     @Override
-    public void init() {
-        PropertiesUtil propertiesUtil = new PropertiesUtil("Data.properties");
-        DBUtil dbUtil = new DBUtil(propertiesUtil);
-        UserRepositoryImpl userRepository = null;
+    public void init() throws ServletException {
         try {
-            userRepository = new UserRepositoryImpl(dbUtil.getConnection());
+            PropertiesUtil propertiesUtil = new PropertiesUtil("Data.properties");
+            DBUtil dbUtil = new DBUtil(propertiesUtil);
+            UserRepositoryImpl userRepository = new UserRepositoryImpl(dbUtil.getConnection());
+            userService = new UserService(userRepository, propertiesUtil.getProperty("salt"));
         } catch (SQLException e) {
+            logger.error("Failed to initialize in LoginServlet", e);
             throw new RuntimeException(e);
         }
-        userService = new UserService(userRepository, propertiesUtil.getProperty("salt"));
     }
 
     @Override
@@ -57,6 +57,7 @@ public class LoginServlet extends HttpServlet {
                 request.getRequestDispatcher("WEB-INF/login.jsp").forward(request, response);
             }
         } catch (Exception e){
+            logger.error("Error during login process", e);
             request.setAttribute("error", "Internal server error. Please try again later.");
             request.getRequestDispatcher("WEB-INF/login.jsp").forward(request, response);
         }

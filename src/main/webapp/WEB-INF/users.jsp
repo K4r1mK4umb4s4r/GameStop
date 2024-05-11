@@ -9,7 +9,7 @@
 </head>
 <body>
 <h1>User Profile</h1>
-<% if (request.getAttribute("user") != null) { %>
+<% if (session.getAttribute("user") != null) { %>
 <% UserSDTO user = (UserSDTO) session.getAttribute("user"); %>
 <p><strong>Name:</strong> <%= user.getName() %></p>
 <p><strong>Email:</strong> <%= user.getEmail() %></p>
