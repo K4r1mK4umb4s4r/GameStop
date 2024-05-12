@@ -54,6 +54,7 @@ public class RegistrationServlet extends HttpServlet {
             if (success) {
                 response.sendRedirect("login");
             } else {
+                logger.warn("Invalid credentials");
                 request.setAttribute("error", "Email already exists or other registration error");
                 request.getRequestDispatcher("WEB-INF/register.jsp").forward(request, response);
             }
